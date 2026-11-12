@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Word pipeline">
+  <rect x="6" y="8" width="36" height="48" rx="4" fill="#e8f1fb" stroke="#2f5d8a" stroke-width="3"/>
+  <path d="M14 20h20M14 28h20M14 36h13" stroke="#2f5d8a" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="46" cy="44" r="11" fill="#2f5d8a"/>
+  <path d="M46 37v6l4 3" stroke="#ffffff" stroke-width="3" stroke-linecap="round" fill="none"/>
+</svg>

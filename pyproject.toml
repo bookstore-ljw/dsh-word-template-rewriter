@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dsh-word"
+version = "0.2.0"
+description = "Deterministic DOCX template filling, whole-document retypesetting and quality gates for the DSH word pipeline"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "ljw" }]
+keywords = ["docx", "word", "ooxml", "template", "retypeset", "dsh"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Topic :: Office/Business :: Office Suites",
+]
+dependencies = ["python-docx>=1.1", "lxml>=4.9", "Pillow>=10", "PyYAML>=6"]
+
+[project.optional-dependencies]
+# Windows + Word：真实版面复核与 PDF 导出（dsh-word retypeset --verify / render）
+render = ["pywin32>=306", "pymupdf>=1.24"]
+# 需要按字宽计算表格列宽时也会用到 pymupdf，装上 render 即可
+all = ["pywin32>=306", "pymupdf>=1.24"]
+
+[project.scripts]
+dsh-word = "dsh_word.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/USER/DSH-word"
+Issues = "https://github.com/USER/DSH-word/issues"
+
+[tool.setuptools.packages.find]
+include = ["dsh_word*"]
+
+[tool.setuptools.package-data]
+dsh_word = ["rules.yaml", "profiles/*.json"]

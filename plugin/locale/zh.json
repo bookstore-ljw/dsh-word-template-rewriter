@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Word 流水线",
+    "description": "把资料填充进 Word 模板，并执行检查、合批与 Word 渲染预览。"
+  }
+}

@@ -1,0 +1,104 @@
+version: 1
+# Deterministic gates.  Every rule is data: id, kind, severity, parameters.
+# severity: error = blocks delivery, warning = needs a human look, info = candidate.
+rules:
+  - id: no-leftover-slot
+    kind: leftover_slot
+    severity: error
+    message: 模板占位符未被替换
+
+  - id: replacement-character
+    kind: text_regex
+    severity: error
+    message: 文本含 Unicode 替换字符 U+FFFD（乱码）
+    pattern: '\uFFFD'
+
+  - id: control-character
+    kind: text_regex
+    severity: error
+    message: 文本含控制字符
+    pattern: '[\x00-\x08\x0B\x0C\x0E-\x1F]'
+
+  - id: cjk-multiple-spaces
+    kind: text_regex
+    severity: warning
+    message: 中文之间出现连续空格
+    pattern: '(?<=[\u4e00-\u9fff])  +(?=[\u4e00-\u9fff])'
+
+  - id: raw-tex
+    kind: text_regex
+    severity: warning
+    message: 疑似未转换的 LaTeX 定界符
+    pattern: '(?<!\\)\$[^$\n]{1,120}\$'
+    include_math: true
+
+  - id: latex-command
+    kind: text_regex
+    severity: warning
+    message: 疑似未转换的 LaTeX 命令
+    pattern: '\\(frac|begin|end|sum|int|alpha|beta|gamma|delta|sigma|sqrt)\b'
+    include_math: true
+
+  - id: math-integrity
+    kind: math_integrity
+    severity: error
+    message: 公式结构不完整
+
+  - id: glued-words
+    kind: glued_words
+    severity: warning
+    message: 疑似两个单词粘连（缺少空格）
+    min_part_length: 3
+    allow:
+      - iphone
+      - ipad
+      - ipod
+      - powerpoint
+      - wordpress
+      - javascript
+      - typescript
+      - github
+      - gitlab
+      - youtube
+      - linkedin
+      - openai
+      - chatgpt
+      - deepseek
+      - without
+      - through
+      - throughout
+      - therefore
+      - however
+      - because
+      - between
+      - within
+      - another
+      - something
+      - anything
+      - everything
+      - background
+      - foreground
+      - download
+      - upload
+      - feedback
+      - database
+
+  - id: format-conformance
+    kind: format_conformance
+    severity: error
+    message: 与模板的段落/字符格式不一致
+
+  - id: table-shape
+    kind: table_shape
+    severity: error
+    message: 表格结构与模板不一致
+
+  - id: image-fit
+    kind: image_fit
+    severity: error
+    message: 图片宽于正文可用宽度
+
+  - id: template-conformance
+    kind: template_conformance
+    severity: info
+    message: 与原始模板的版式/样式存在差异

@@ -1,0 +1,27 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+
+# ---- 生成物：样例夹具与所有中间/输出文档（体积大，不入库）----
+fixtures/build/
+fixtures/build-*/
+uploads/
+logs/
+*.pdf
+
+# ---- 插件 ----
+plugin/node_modules/
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+agent-run.ndjson
+*.ndjson

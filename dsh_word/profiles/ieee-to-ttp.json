@@ -1,0 +1,77 @@
+{
+  "name": "ieee-to-ttp",
+  "description": "IEEE 双栏会议稿 → Trans Tech Publications (TTP) 单栏模板。字号、编号、题注、参考文献编号均取自模板。",
+  "target": {
+    "title": "TTP Title",
+    "author": "TTP Author(s)",
+    "address": "TTP Address",
+    "abstract": "TTP Abstract",
+    "keywords": "TTP Keywords",
+    "heading": {
+      "1": "Heading 1",
+      "2": "Heading 2",
+      "3": "Heading 3"
+    },
+    "body": "TTP Paragraph (others)",
+    "caption": "TTP Paragraph (others)",
+    "equation": "TTP Paragraph (others)",
+    "reference": "Reference",
+    "reference_heading": "Heading 1"
+  },
+  "source": {
+    "title_styles": [
+      "paper title",
+      "Title"
+    ],
+    "author_style": "Author",
+    "abstract_styles": [
+      "Abstract"
+    ],
+    "keywords_styles": [
+      "Keywords"
+    ],
+    "heading_prefix": "Heading",
+    "figure_caption_styles": [
+      "figure caption"
+    ],
+    "table_caption_styles": [
+      "table head"
+    ],
+    "equation_styles": [
+      "equation"
+    ],
+    "reference_styles": [
+      "Bibliography",
+      "references",
+      "Reference"
+    ],
+    "reference_heading_text": "References",
+    "drop_styles": [
+      "sponsors"
+    ],
+    "drop_sections": [
+      "background",
+      "authors’ background"
+    ],
+    "abstract_lead": "Abstract. ",
+    "keywords_lead": "Keywords:",
+    "header_skip_patterns": [
+      "contributed equally",
+      "作者名",
+      "根据作者需要",
+      "use style"
+    ]
+  },
+  "layout": {
+    "figure_width_cm": 12.0,
+    "table_width_twip": 6740,
+    "table_font_pt": 10
+  },
+  "flags": {
+    "keep_next": true,
+    "red_placeholder_header": true,
+    "number_captions": true,
+    "normalize_table_refs": true,
+    "reference_heading_unumbered": true
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Word pipeline",
+    "description": "Fill a Word template from source material, then run checks, batch fixes and a Word-rendered preview."
+  }
+}

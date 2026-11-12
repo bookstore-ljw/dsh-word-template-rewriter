@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Word 流水线助手</title>
+<style>
+  :root{
+    --bg:#fff; --surface:#f7f8fa; --line:#e7e9ee; --ink:#0f1115; --muted:#6b7280;
+    --blue:#4176e6; --violet:#7c3aed; --green:#12a150; --red:#d92d20; --amber:#b54708;
+    --radius:12px; --shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px rgba(16,24,40,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{height:auto;min-height:100%}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;
+    color:var(--ink);background:var(--bg);min-height:100vh;overflow-y:auto}
+  .app{display:grid;grid-template-columns:248px minmax(0,1fr) 400px;min-height:100vh}
+  /* sidebar */
+  .side{border-right:1px solid var(--line);background:#fbfbfc;display:flex;flex-direction:column;padding:14px;
+    position:sticky;top:0;height:100vh;overflow:auto}
+  .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px}
+  .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--violet));
+    display:grid;place-items:center;color:#fff;font-weight:700;font-size:16px}
+  .brand b{font-size:15px}
+  .brand small{display:block;color:var(--muted);font-size:11px}
+  .side h4{margin:14px 8px 6px;font-size:11px;letter-spacing:.04em;color:var(--muted);text-transform:uppercase}
+  .side .item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;font-size:13px;color:#374151;cursor:default}
+  .side .item.on{background:#eef2fe;color:#1d4ed8;font-weight:600}
+  .side .item .state{margin-left:auto;font-size:11px;color:var(--muted)}
+  .side .item .state.ok{color:var(--green)}
+  .side .footer{margin-top:auto;border-top:1px solid var(--line);padding-top:10px;font-size:11px;color:var(--muted)}
+  /* main */
+  .main{display:flex;flex-direction:column;min-width:0;min-height:100vh}
+  .top{display:flex;align-items:center;gap:12px;padding:16px 22px;border-bottom:1px solid var(--line)}
+  .top h1{font-size:18px;margin:0}
+  .top .sub{color:var(--muted);font-size:12px;margin-top:2px}
+  .pill{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:#374151;
+    border:1px solid var(--line);background:#fff;padding:5px 10px;border-radius:999px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--green)}
+  .dot.busy{background:var(--amber)}
+  .body{flex:1;padding:20px 22px 26px;display:flex;flex-direction:column;gap:14px}
+  .card{border:1px solid var(--line);border-radius:var(--radius);background:#fff;box-shadow:var(--shadow)}
+  .card .head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line);font-weight:600;font-size:13px}
+  .card .body-inner{padding:14px 16px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .drop{border:1px dashed #cfd5e1;border-radius:var(--radius);background:#fbfcff;padding:16px;cursor:pointer;
+    display:flex;flex-direction:column;gap:6px;transition:.15s}
+  .drop:hover{border-color:var(--blue);background:#f5f8ff}
+  .drop.loaded{border-style:solid;border-color:#bcd0f7;background:#f6f9ff}
+  .drop b{font-size:13px}
+  .drop span{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .drop .bar{height:4px;border-radius:99px;background:#e6ecfa;overflow:hidden;margin-top:4px;display:none}
+  .drop .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--blue),var(--violet))}
+  .cta{width:100%;border:0;border-radius:12px;padding:13px;font-size:15px;font-weight:600;color:#fff;cursor:pointer;
+    background:linear-gradient(135deg,var(--blue),var(--violet));box-shadow:0 8px 20px rgba(80,70,229,.25)}
+  .cta:disabled{opacity:.6;cursor:default}
+  .hint{text-align:center;color:var(--muted);font-size:12px;margin-top:2px}
+  .stages{display:flex;flex-direction:column;gap:6px}
+  .stage{display:flex;align-items:center;gap:8px;font-size:13px}
+  .stage i{width:8px;height:8px;border-radius:50%;background:#d1d5db}
+  .stage.ok i{background:var(--green)} .stage.fail i{background:var(--red)} .stage.run i{background:var(--amber)}
+  .stage .meta{margin-left:auto;color:var(--muted);font-size:11px}
+  .issues{margin-top:8px;background:#fff5f5;border:1px solid #fecdca;border-radius:10px;padding:8px 10px;
+    font-size:12px;color:#b42318;display:flex;flex-direction:column;gap:4px}
+  .logs{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;max-height:190px;overflow:auto;display:flex;flex-direction:column;gap:3px}
+  .log{display:flex;gap:8px;color:#475467}
+  .log .t{color:#98a2b3;flex:none}
+  .log .p{color:#3b5bdb;flex:none}
+  .log .m{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .log.err .m{color:var(--red)}
+  .chat{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow:auto}
+  .msg{max-width:92%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.55;background:#f4f6fa;color:#1f2937}
+  .msg.user{align-self:flex-end;background:#e8f0ff;color:#15306b}
+  .inputrow{display:flex;gap:8px;margin-top:8px}
+  .inputrow input{flex:1;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;outline:0}
+  .inputrow input:focus{border-color:var(--blue)}
+  .inputrow button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:0 14px;cursor:pointer}
+  /* right */
+  .right{border-left:1px solid var(--line);background:#fbfbfc;display:flex;flex-direction:column;padding:14px;gap:12px}
+  .right .card{box-shadow:none}
+  .doc{display:flex;flex-direction:column;gap:10px;align-items:center;text-align:center;padding:20px 16px}
+  .doc .t{font-weight:600;font-size:14px}
+  .doc .s{font-size:12px;color:var(--muted);line-height:1.6;max-width:280px}
+  .doc .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 14px;font-size:13px;cursor:pointer;color:#1f2937}
+  .btn.primary{border:0;color:#fff;background:linear-gradient(135deg,var(--blue),var(--violet))}
+  .btn:disabled{opacity:.5;cursor:default}
+  .dl{display:flex;gap:8px;flex-wrap:wrap}
+  .dl a{flex:1;text-align:center;text-decoration:none;border:1px solid var(--line);border-radius:10px;padding:9px 0;font-size:13px;color:#1f2937}
+  .dl a.primary{border:0;color:#fff;background:linear-gradient(135deg,var(--blue),var(--violet))}
+  .steps{display:flex;flex-wrap:wrap;gap:6px}
+  .steps span{font-family:ui-monospace,Consolas,monospace;font-size:11px;border:1px solid var(--line);border-radius:8px;padding:4px 7px;color:#475467;background:#fff}
+  .empty{color:var(--muted);font-size:12px;text-align:center;padding:12px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="logo">W</div>
+      <div><b>Word 流水线助手</b><small>资料 + 模板 → 成稿</small></div>
+    </div>
+    <h4>工作区</h4>
+    <div class="item on">📄 流水线 <span class="state" id="sideState">就绪</span></div>
+    <div class="item">📎 资料 <span class="state" id="sideSource">未选择</span></div>
+    <div class="item">🧩 模板 <span class="state" id="sideTemplate">未选择</span></div>
+    <h4>运行</h4>
+    <div class="item">📊 最近运行 <span class="state" id="sideRuns">0</span></div>
+    <div class="item" id="modelBtn" style="cursor:pointer">🧠 模型 <span class="state" id="modelState">DSH</span></div>
+    <div class="footer">基于 DeepSeek Harness · 本地引擎</div>
+  </aside>
+
+  <div id="modelModal" style="display:none;position:fixed;inset:0;background:rgba(15,17,21,.45);z-index:50;place-items:center">
+    <div style="width:min(640px,94vw);background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line)">
+        <b style="font-size:14px">模型管理</b>
+        <button id="modelClose" style="border:0;background:transparent;font-size:18px;cursor:pointer">×</button>
+      </div>
+      <div style="padding:14px 18px;display:flex;flex-direction:column;gap:12px;max-height:68vh;overflow:auto">
+        <div id="modelList" style="display:flex;flex-direction:column;gap:6px;font-size:12.5px"></div>
+        <div style="border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:12px;color:var(--muted)">添加模型 API（保存后立即可用，无需安装 DSH 配置）：</div>
+          <div style="display:grid;grid-template-columns:70px 1fr;gap:8px;align-items:center;font-size:12.5px">
+            <span>名称</span><input id="mName" placeholder="OpenAI / Claude / 中转" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px" />
+            <span>类型</span><select id="mType" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px"><option value="openai">OpenAI 兼容</option><option value="anthropic">Anthropic</option></select>
+            <span>Base URL</span><input id="mBase" placeholder="https://api.openai.com/v1" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px" />
+            <span>模型</span><input id="mModel" placeholder="gpt-4o-mini / claude-sonnet-4-20250514" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px" />
+            <span>API Key</span><input id="mKey" type="password" placeholder="sk-..." style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px" />
+            <span>输入价</span><input id="mPriceIn" type="number" step="0.01" placeholder="每 1M tokens 价格，如 0.15" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px" />
+            <span>输出价</span><input id="mPriceOut" type="number" step="0.01" placeholder="每 1M tokens 价格，如 0.6" style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px" />
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn primary" id="mSave">保存并启用</button>
+            <button class="btn" id="mTest">测试当前</button>
+          </div>
+          <div id="mStatus" style="font-size:12px;color:var(--muted)"></div>
+          <div style="border-top:1px solid var(--line);padding-top:10px;font-size:12px;color:var(--muted)">
+            <div style="display:flex;justify-content:space-between"><span>网关用量</span><span id="usageTotals">—</span></div>
+            <div id="usageList" style="margin-top:6px;display:flex;flex-direction:column;gap:3px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <main class="main">
+    <header class="top">
+      <div>
+        <h1>Word 流水线助手</h1>
+        <div class="sub">上传模板和资料，一键填充 → 检查 → 自愈 → 渲染</div>
+      </div>
+      <div class="pill"><span class="dot" id="stateDot"></span><span id="stateText">就绪</span></div>
+    </header>
+    <div class="body">
+      <section class="card">
+        <div class="head"><span>一键转换</span><span style="color:var(--muted);font-weight:400;font-size:12px">填充 → 检查 → 渲染</span></div>
+        <div class="body-inner" style="display:flex;flex-direction:column;gap:12px">
+          <div class="grid2">
+            <div class="drop" id="dropSource">
+              <b>资料 DOCX</b><span id="sourceName">拖入资料，或点击选择</span>
+              <div class="bar"><i id="sourceBar"></i></div>
+            </div>
+            <div class="drop" id="dropTemplate">
+              <b>模板 DOCX</b><span id="templateName">拖入模板，或点击选择</span>
+              <div class="bar"><i id="templateBar"></i></div>
+            </div>
+          </div>
+          <button class="cta" id="convert">开始转换</button>
+          <div class="hint" id="hint">上传资料与模板后点一次，自动完成填充、检查与预览。</div>
+          <div class="stages" id="stages"></div>
+          <div id="issues"></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="head"><span>Agent 日志</span><span style="color:var(--muted);font-weight:400;font-size:12px" id="logCount">0 条</span></div>
+        <div class="body-inner"><div class="logs" id="logs"><div class="empty">点一次「开始转换」就能看到每一步。</div></div></div>
+      </section>
+
+      <section class="card">
+        <div class="head"><span>需要调整？直接说明</span></div>
+        <div class="body-inner">
+          <div class="chat" id="chat"></div>
+          <div class="inputrow">
+            <input id="chatInput" placeholder="例如：把图改成 10cm，或：第二段再紧凑一点" />
+            <button id="chatSend">发送</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <aside class="right">
+    <section class="card">
+      <div class="head"><span>文档</span><span id="docState" style="color:var(--muted);font-weight:400;font-size:12px">等待运行</span></div>
+      <div class="doc">
+        <div class="t" id="docTitle">还没有成稿</div>
+        <div class="s" id="docSub">转换完成后可下载 DOCX / PDF，或直接在 Word 中打开。</div>
+        <div class="row">
+          <button class="btn primary" id="openWord" disabled>在 Word 中打开</button>
+          <button class="btn" id="viewMap" disabled>查看映射</button>
+        </div>
+        <div class="dl" id="downloads" style="width:100%"></div>
+      </div>
+    </section>
+    <section class="card">
+      <div class="head"><span>步骤</span><span id="stepCount" style="color:var(--muted);font-weight:400;font-size:12px">0</span></div>
+      <div class="body-inner"><div class="steps" id="steps"><div class="empty">暂无</div></div></div>
+    </section>
+  </aside>
+</div>
+
+<script>
+const API = '/word-pipeline';
+const state = { files:{source:null,template:null}, busy:false, steps:[], logs:[], messages:[], outcome:null };
+
+const $ = (s) => document.querySelector(s);
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+
+function toastLog(level, phase, message) {
+  state.logs.push({ t: Date.now(), level, phase, message });
+  if (state.logs.length > 300) state.logs.shift();
+  renderLogs();
+}
+function renderLogs() {
+  const box = $('#logs'); box.textContent = '';
+  if (!state.logs.length) { box.append(el('div','empty','点一次「开始转换」就能看到每一步。')); }
+  for (const l of state.logs.slice(-200)) {
+    const row = el('div','log' + (l.level === 'error' ? ' err' : ''));
+    row.append(el('span','t', new Date(l.t).toLocaleTimeString('zh-CN',{hour12:false})));
+    row.append(el('span','p', l.phase || ''));
+    row.append(el('span','m', l.message || ''));
+    box.append(row);
+  }
+  $('#logCount').textContent = state.logs.length + ' 条';
+  box.scrollTop = box.scrollHeight;
+}
+function renderStages() {
+  const box = $('#stages'); box.textContent = '';
+  const stages = state.outcome?.stages || [];
+  for (const s of stages) {
+    const row = el('div','stage ' + (s.ok ? 'ok' : 'fail'));
+    row.append(el('i'));
+    row.append(el('span', null, ({fill:'填充',check:'检查',render:'渲染'})[s.name] || s.name));
+    row.append(el('span','meta', s.steps ? s.steps + ' 步' : (s.ok ? '完成' : '未通过')));
+    box.append(row);
+  }
+}
+function renderIssues() {
+  const box = $('#issues'); box.textContent = '';
+  const list = state.outcome?.checkIssues || [];
+  if (state.outcome && state.outcome.ok === false && state.outcome.error) list.push({ severity: 'error', message: state.outcome.error });
+  if (!list.length) return;
+  const wrap = el('div','issues');
+  for (const i of list.slice(0,8)) wrap.append(el('div', null, `[${i.severity||'error'}] ${i.message}`));
+  box.append(wrap);
+}
+function setBusy(v, text) {
+  state.busy = v;
+  $('#convert').disabled = v;
+  $('#stateDot').className = 'dot' + (v ? ' busy' : '');
+  $('#stateText').textContent = v ? (text || '处理中…') : '就绪';
+  $('#sideState').textContent = v ? '运行中' : '就绪';
+  $('#hint').textContent = v ? (text || '正在处理…') : '上传资料与模板后点一次，自动完成填充、检查与预览。';
+}
+function renderFiles() {
+  const s = state.files.source, t = state.files.template;
+  $('#sourceName').textContent = s ? s.name : '拖入资料，或点击选择';
+  $('#templateName').textContent = t ? t.name : '拖入模板，或点击选择';
+  $('#dropSource').classList.toggle('loaded', !!s);
+  $('#dropTemplate').classList.toggle('loaded', !!t);
+  $('#sideSource').textContent = s ? '已加载' : '未选择';
+  $('#sideTemplate').textContent = t ? '已加载' : '未选择';
+  $('#sideSource').className = 'state' + (s ? ' ok' : '');
+  $('#sideTemplate').className = 'state' + (t ? ' ok' : '');
+}
+function renderOutcome() {
+  const o = state.outcome;
+  $('#openWord').disabled = !(o && o.docx);
+  $('#viewMap').disabled = !(o && (o.checkIssues || []).length);
+  const failed = !!(o && o.ok === false);
+  $('#docState').textContent = o ? (failed ? '失败' : (o.checkFailed ? '检查未通过' : '已完成')) : '等待运行';
+  $('#docTitle').textContent = o ? (failed ? '转换失败' : '成稿已生成') : '还没有成稿';
+  $('#docSub').textContent = failed
+    ? (o.error || '请查看 Agent 日志中的错误')
+    : (o ? '可下载 DOCX / PDF，或在 Word 中打开查看。' : '转换完成后可下载 DOCX / PDF，或直接在 Word 中打开。');
+  const dl = $('#downloads'); dl.textContent = '';
+  if (o && o.docx) {
+    const a = el('a','primary','下载 DOCX'); a.href = `/word-pipeline/download?path=${encodeURIComponent(o.docx)}`; a.download = ''; dl.append(a);
+    if (o.pdf) { const b = el('a',null,'下载 PDF'); b.href = `/word-pipeline/download?path=${encodeURIComponent(o.pdf)}`; b.download = ''; dl.append(b); }
+  }
+  $('#stepCount').textContent = state.steps.length;
+  const box = $('#steps'); box.textContent = '';
+  if (!state.steps.length) box.append(el('div','empty','暂无'));
+  for (const s of state.steps.slice(-40)) box.append(el('span', null, `${String(s.op).padStart(2,'0')} ${s.kind}·${s.slot||''}`));
+}
+
+async function upload(file, kind) {
+  const buffer = await file.arrayBuffer();
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  const response = await fetch(API + '/upload', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kind, name: file.name, data: btoa(binary) }),
+  });
+  const data = await response.json();
+  if (!data.ok) throw new Error(data.error || '上传失败');
+  return data;
+}
+
+function bindDrop(id, kind) {
+  const zone = $(id);
+  const input = el('input'); input.type = 'file'; input.accept = '.docx'; input.style.display = 'none';
+  document.body.append(input);
+  zone.addEventListener('click', () => input.click());
+  input.addEventListener('change', async () => {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (file) await takeFile(kind, file);
+  });
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.style.borderColor = '#4176e6'; });
+  zone.addEventListener('dragleave', () => { zone.style.borderColor = ''; });
+  zone.addEventListener('drop', async (e) => {
+    e.preventDefault(); zone.style.borderColor = '';
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) await takeFile(kind, file);
+  });
+}
+async function takeFile(kind, file) {
+  const bar = kind === 'source' ? $('#sourceBar') : $('#templateBar');
+  const wrap = bar.parentElement; wrap.style.display = 'block'; bar.style.width = '5%';
+  state.files[kind] = { name: file.name, path: '' };
+  renderFiles();
+  try {
+    const saved = await upload(file, kind);
+    state.files[kind] = { name: saved.name, path: saved.path };
+    bar.style.width = '100%';
+    toastLog('info', '上传', `${kind === 'source' ? '资料' : '模板'}：${saved.name}`);
+  } catch (error) {
+    state.files[kind] = null;
+    toastLog('error', '上传', String(error.message || error));
+  }
+  renderFiles();
+  setTimeout(() => { wrap.style.display = 'none'; bar.style.width = '0'; }, 1200);
+}
+
+async function convertViaAgent() {
+  const response = await fetch(API + '/agent/run-stream', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      template: state.files.template && state.files.template.path,
+      source: state.files.source && state.files.source.path,
+    }),
+  });
+  if (!response.ok || !response.body) throw new Error('Agent 请求失败');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let finalText = '';
+  let sawFill = false;
+  const fillTools = new Set(['safe_fill', 'sectional', 'map_apply', 'word']);
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let idx = buffer.indexOf('\n');
+    while (idx >= 0) {
+      const line = buffer.slice(0, idx).trim(); buffer = buffer.slice(idx + 1); idx = buffer.indexOf('\n');
+      if (!line) continue;
+      let e; try { e = JSON.parse(line); } catch { continue; }
+      if (e.type === 'thought') { if (e.text) setBusy(true, e.text.slice(0, 40)); }
+      else if (e.type === 'tool') {
+        if (fillTools.has(String(e.name))) sawFill = true;
+        toastLog('info', '工具 ' + e.name, JSON.stringify(e.args || {}).slice(0, 120));
+      }
+      else if (e.type === 'result') toastLog('info', '结果 ' + e.name, String(e.summary || '').split('\n')[0].slice(0, 160));
+      else if (e.type === 'section') toastLog('info', '章节 ' + e.item.label, `替换 ${e.item.replaced}/${e.item.slots}`);
+      else if (e.type === 'final') finalText = e.text || '完成';
+      else if (e.type === 'error') throw new Error(e.error);
+    }
+  }
+  if (!finalText) throw new Error('Agent 没有返回结果');
+  if (/连续没有返回|模型调用失败|达到步数上限/.test(finalText) || !sawFill) {
+    throw new Error('Agent 未完成填充：' + finalText.slice(0, 80));
+  }
+  appendMessage('agent', finalText);
+  const response2 = await fetch(API + '/result');
+  const data = await response2.json();
+  state.outcome = { ok: true, docx: data.docx, pdf: data.pdf, png: data.png, checkIssues: data.issues || [] };
+  if (data.png || data.docx) state.preview = { path: data.png || data.docx, version: Date.now() };
+  return true;
+}
+
+async function convert() {
+  if (state.busy) return;
+  setBusy(true, '读取资料…');
+  try {
+    await convertViaAgent();
+    renderStages(); renderIssues(); renderOutcome(); setBusy(false);
+    toastLog('info', 'done', 'Agent 已完成');
+    return;
+  } catch (agentError) {
+    toastLog('warn', 'agent', 'Agent 执行失败，回退本地流水线：' + (agentError.message || agentError));
+  }
+  state.steps = []; state.logs = []; state.outcome = null;
+  renderLogs(); renderStages(); renderIssues(); renderOutcome();
+  try {
+    try {
+      const live = await fetch(API + '/live-start', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template: state.files.template && state.files.template.path }),
+      });
+      const liveData = await live.json();
+      if (liveData.ok) toastLog('info', 'Word', '已打开 Word，实时同步每一次修改');
+      else toastLog('error', 'Word', liveData.error || '无法打开 Word');
+    } catch (error) {
+      toastLog('error', 'Word', '实时 Word 启动失败：' + (error.message || error));
+    }
+    const response = await fetch(API + '/convert-stream', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        template: state.files.template && state.files.template.path,
+        source: state.files.source && state.files.source.path,
+      }),
+    });
+    if (!response.ok || !response.body) throw new Error('转换请求失败（HTTP ' + response.status + '）');
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx = buffer.indexOf('\n');
+      while (idx >= 0) {
+        const line = buffer.slice(0, idx).trim(); buffer = buffer.slice(idx + 1); idx = buffer.indexOf('\n');
+        if (!line) continue;
+        let e; try { e = JSON.parse(line); } catch { continue; }
+        if (e.type === 'stage') setBusy(true, e.name === 'fill' ? '读取资料并填充…' : e.name === 'check' ? '检查中…' : e.name === 'render' ? '渲染中…' : '完成');
+        else if (e.type === 'step') { state.steps.push(e.item); renderOutcome(); setBusy(true, `填充 ${e.item.op}：${e.item.slot||e.item.kind}`); }
+        else if (e.type === 'log') toastLog(e.entry.level, e.entry.phase, e.entry.message);
+        else if (e.type === 'missing') appendMessage('agent', `资料里没有找到「${e.segment}」可用的内容，先跳过这部分，继续处理后面的章节。`);
+        else if (e.type === 'done') state.outcome = e.result;
+      }
+    }
+    if (!state.outcome) throw new Error('转换流意外结束');
+    renderStages(); renderIssues(); renderOutcome();
+    setBusy(false);
+    toastLog('info', 'done', '转换完成');
+  } catch (error) {
+    toastLog('error', 'error', String(error.message || error));
+    setBusy(false);
+  }
+}
+
+function appendMessage(role, text) {
+  state.messages.push({ role, text });
+  const box = $('#chat'); box.textContent = '';
+  if (!state.messages.length) box.append(el('div','empty','还没有对话。'));
+  for (const m of state.messages.slice(-30)) box.append(el('div','msg' + (m.role === 'user' ? ' user' : ''), m.text));
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendChat() {
+  const input = $('#chatInput');
+  const text = input.value.trim();
+  if (!text || state.busy) return;
+  input.value = '';
+  appendMessage('user', text);
+  try {
+    const response = await fetch(API + '/agent/chat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, template: state.files.template && state.files.template.path, source: state.files.source && state.files.source.path }),
+    });
+    const data = await response.json();
+    appendMessage('agent', data.reply || '(无回复)');
+    if (Array.isArray(data.logs)) for (const l of data.logs) toastLog(l.level, l.phase, l.message);
+  } catch (error) {
+    appendMessage('agent', '请求失败：' + (error.message || error));
+  }
+}
+
+async function refreshSide() {
+  try {
+    const r = await fetch(API + '/runs?limit=5'); const d = await r.json();
+    $('#sideRuns').textContent = d.runs ? d.runs.length : 0;
+  } catch {}
+}
+
+$('#convert').addEventListener('click', convert);
+$('#chatSend').addEventListener('click', sendChat);
+$('#chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
+$('#openWord').addEventListener('click', async () => {
+  if (!state.outcome || !state.outcome.docx) return;
+  try {
+    const r = await fetch(API + '/open-word', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: state.outcome.docx }) });
+    const d = await r.json();
+    toastLog(d.ok ? 'info' : 'error', 'Word', d.ok ? '已打开 Word' : (d.error || '打开失败'));
+  } catch (error) { toastLog('error', 'Word', String(error.message || error)); }
+});
+$('#viewMap').addEventListener('click', async () => {
+  try {
+    const r = await fetch(API + '/mapping'); const d = await r.json();
+    toastLog('info', '映射', d.debug ? `映射 ${d.debug.final.length} 条：${(d.debug.notes||'').slice(0,60)}` : '还没有映射记录');
+  } catch {}
+});
+
+let modelConfig = { active: '', providers: [] };
+async function loadUsage() {
+  try {
+    const r = await fetch(API + '/model-usage');
+    const d = await r.json();
+    const u = d.usage || {};
+    $('#usageTotals').textContent = `${u.calls || 0} 次 · ${(u.inputTokens || 0) + (u.outputTokens || 0)} tokens · $${(u.cost || 0).toFixed(4)}`;
+    const list = $('#usageList'); list.textContent = '';
+    for (const [id, item] of Object.entries(u.byProvider || {})) {
+      list.append(el('div', null, `${item.name || id}：${item.calls} 次 / ${(item.inputTokens||0)+(item.outputTokens||0)} tok / $${(item.cost||0).toFixed(4)}${item.failures ? ` / 失败 ${item.failures}` : ''}`));
+    }
+    if (!Object.keys(u.byProvider || {}).length) list.append(el('div', null, '还没有调用记录'));
+  } catch (error) {
+    $('#usageTotals').textContent = '读取失败';
+  }
+}
+async function loadModels() {
+  const status = $('#mStatus');
+  try {
+    const r = await fetch(API + '/model-config');
+    modelConfig = await r.json();
+    renderModels();
+  } catch (error) {
+    if (status) status.textContent = '读取失败：' + (error.message || error);
+  }
+}
+function renderModels() {
+  const list = $('#modelList'); list.textContent = '';
+  const providers = modelConfig.providers || [];
+  if (!providers.length) list.append(el('div', null, '还没有自定义模型，使用 DSH 内置模型（如有）。'));
+  for (const p of providers) {
+    const row = el('div', null, '');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff';
+    const active = p.id === modelConfig.active;
+    const title = el('div', null, '');
+    title.style.cssText = 'flex:1;min-width:0';
+    title.append(el('div', null, `${p.name}${active ? '（当前）' : ''}`));
+    const sub = el('div', null, `${p.type} · ${p.model} · ${p.baseUrl} · ${p.key || ''}`);
+    sub.style.cssText = 'font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+    title.append(sub);
+    row.append(title);
+    if (!active) {
+      const use = el('button','btn','启用'); use.style.cssText='padding:5px 10px;font-size:12px';
+      use.addEventListener('click', async () => { await fetch(API + '/model-config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'activate',id:p.id})}); await loadModels(); });
+      row.append(use);
+    }
+    const del = el('button','btn','删除'); del.style.cssText='padding:5px 10px;font-size:12px';
+    del.addEventListener('click', async () => { await fetch(API + '/model-config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'delete',id:p.id})}); await loadModels(); });
+    row.append(del);
+    list.append(row);
+  }
+  $('#modelState').textContent = modelConfig.active
+    ? ((providers.find((p) => p.id === modelConfig.active) || {}).model || '自定义')
+    : 'DSH';
+}
+async function saveModel() {
+  const payload = {
+    name: $('#mName').value.trim(), type: $('#mType').value,
+    baseUrl: $('#mBase').value.trim(), model: $('#mModel').value.trim(), apiKey: $('#mKey').value.trim(),
+  };
+  if (!payload.baseUrl || !payload.model) { $('#mStatus').textContent = 'Base URL 和模型名必填'; return; }
+  const r = await fetch(API + '/model-config', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const d = await r.json();
+  $('#mStatus').textContent = d.ok ? '已保存并启用' : '保存失败';
+  await loadModels();
+  await loadUsage();
+}
+async function testModel() {
+  const status = $('#mStatus');
+  status.textContent = '测试中…';
+  try {
+    const r = await fetch(API + '/model-test', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ id: modelConfig.active })});
+    const d = await r.json();
+    status.textContent = d.ok ? `连通正常：${d.reply}` : `失败：${d.error}`;
+    await loadUsage();
+  } catch (error) { status.textContent = '失败：' + (error.message || error); }
+}
+$('#modelBtn').addEventListener('click', async () => {
+  $('#modelModal').style.display = 'grid';
+  await loadModels();
+  await loadUsage();
+});
+$('#modelClose').addEventListener('click', () => { $('#modelModal').style.display = 'none'; });
+$('#modelModal').addEventListener('click', (e) => { if (e.target.id === 'modelModal') e.currentTarget.style.display = 'none'; });
+$('#mSave').addEventListener('click', saveModel);
+$('#mTest').addEventListener('click', testModel);
+
+bindDrop('#dropSource', 'source');
+bindDrop('#dropTemplate', 'template');
+appendMessage('agent', '上传资料与模板后点一次「开始转换」。需要微调就在这里说。');
+renderLogs(); renderOutcome(); refreshSide();
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>Word 流水线助手 · 启动中</title>
+<style>
+  :root{--blue:#4176e6;--violet:#7c3aed;--ink:#0f1115;--muted:#6b7280}
+  *{box-sizing:border-box}
+  body{margin:0;height:100vh;display:grid;place-items:center;background:#fff;
+    font-family:system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;color:var(--ink)}
+  .splash{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center}
+  .logo{width:64px;height:64px;border-radius:16px;display:grid;place-items:center;color:#fff;
+    font-size:26px;font-weight:700;background:linear-gradient(135deg,var(--blue),var(--violet));
+    box-shadow:0 12px 30px rgba(80,70,229,.28)}
+  h1{font-size:18px;margin:4px 0 0}
+  .sub{font-size:12px;color:var(--muted)}
+  .spin{width:26px;height:26px;border-radius:50%;border:3px solid #e5e9f2;border-top-color:var(--blue);
+    animation:spin .9s linear infinite;margin-top:6px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .bar{width:240px;height:4px;border-radius:99px;background:#eef1f7;overflow:hidden}
+  .bar i{display:block;height:100%;width:40%;background:linear-gradient(90deg,var(--blue),var(--violet));
+    animation:slide 1.4s ease-in-out infinite}
+  @keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
+  .tip{font-size:11.5px;color:#98a2b3;max-width:320px;line-height:1.6}
+</style>
+</head>
+<body>
+  <div class="splash">
+    <div class="logo">W</div>
+    <h1>Word 流水线助手</h1>
+    <div class="sub">资料 + 模板 → 成稿</div>
+    <div class="spin"></div>
+    <div class="bar"><i></i></div>
+    <div class="tip" id="tip">正在启动本地引擎（DSH Host + Python）…首次启动需要几秒。</div>
+  </div>
+<script>
+  const target = 'http://127.0.0.1:3080/word-pipeline/app';
+  let tries = 0;
+  async function probe() {
+    tries += 1;
+    try {
+      // no-cors: resolves once the server answers, even for an opaque response
+      await fetch(target, { mode: 'no-cors', cache: 'no-store' });
+      location.replace(target);
+      return;
+    } catch (error) {
+      if (tries > 5) {
+        document.getElementById('tip').textContent =
+          '还在等待本地引擎启动（约 10-20 秒）。如果长时间没反应，请检查启动器窗口是否报错。';
+      }
+      setTimeout(probe, 600);
+    }
+  }
+  probe();
+</script>
+</body>
+</html>

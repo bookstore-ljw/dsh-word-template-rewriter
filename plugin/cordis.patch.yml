@@ -1,0 +1,3 @@
+- insert:
+    - id: word-pipeline
+      name: '@local/dsh-word-pipeline'

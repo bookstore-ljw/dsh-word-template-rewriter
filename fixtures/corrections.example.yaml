@@ -1,0 +1,12 @@
+# Router 队列示例：每条 = 用户一句修正指令经 Router 落到具体 slot
+# 同一 slot 的多条会合并，最后一条生效（note 会拼接保留）。
+corrections:
+  - slot: image.fig1
+    width: 8cm
+    note: "图 1 偏小"
+  - slot: text.method
+    value: "模板槽位替换（修订）"
+    note: "方法名统一为修订版"
+  - slot: image.fig1
+    width: 10cm
+    note: "再放大一点到 10cm"
