@@ -28,8 +28,8 @@ all = ["pywin32>=306", "pymupdf>=1.24"]
 dsh-word = "dsh_word.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/USER/DSH-word"
-Issues = "https://github.com/USER/DSH-word/issues"
+Homepage = "https://github.com/bookstore-ljw/dsh-word-template-rewriter"
+Issues = "https://github.com/bookstore-ljw/dsh-word-template-rewriter/issues"
 
 [tool.setuptools.packages.find]
 include = ["dsh_word*"]

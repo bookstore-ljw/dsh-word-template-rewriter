@@ -16,10 +16,10 @@ dsh-word retypeset --template <模板.docx> --source <原文.docx> --out <成稿
 
 ```bash
 # 直接装最新代码
-pip install "git+https://github.com/USER/DSH-word.git"
+pip install "git+https://github.com/bookstore-ljw/dsh-word-template-rewriter.git"
 
 # 想要 Word 版面复核（Windows）
-pip install "git+https://github.com/USER/DSH-word.git#egg=dsh-word[render]"
+pip install "git+https://github.com/bookstore-ljw/dsh-word-template-rewriter.git#egg=dsh-word[render]"
 ```
 
 安装后即可使用：
@@ -35,16 +35,16 @@ dsh-word check --docx 成稿.docx --template 模板.docx
 Windows（PowerShell）：
 
 ```powershell
-git clone https://github.com/USER/DSH-word.git
-cd DSH-word
+git clone https://github.com/bookstore-ljw/dsh-word-template-rewriter.git
+cd dsh-word-template-rewriter
 pwsh -ExecutionPolicy Bypass -File .\scripts\install.ps1 -WithRender
 ```
 
 macOS / Linux：
 
 ```bash
-git clone https://github.com/USER/DSH-word.git
-cd DSH-word
+git clone https://github.com/bookstore-ljw/dsh-word-template-rewriter.git
+cd dsh-word-template-rewriter
 bash scripts/install.sh --render
 ```
 
