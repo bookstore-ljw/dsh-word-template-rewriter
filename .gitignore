@@ -14,6 +14,11 @@ fixtures/build-*/
 uploads/
 logs/
 *.pdf
+*.log
+
+# ---- 本机状态 / 启动脚本（含绝对路径，不对外发布）----
+data/
+启动Word流水线助手.cmd
 
 # ---- 插件 ----
 plugin/node_modules/

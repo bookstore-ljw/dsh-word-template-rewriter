@@ -108,7 +108,7 @@ corrections:
 
 这就是「每个 Agent 是一个独立 Web 应用」的第一块：一张卡片 + 一组自己的端点 +
 自己的界面。后端仍跑在 DSH Host 进程里，Agent 只是把指令翻译成
-`python -m dsh_word ...`。结构与限制见 [docs/agent-manager.md](docs/agent-manager.md)。
+`python -m dsh_word ...`。
 
 ## 右栏面板（Word 流水线）
 
@@ -194,32 +194,11 @@ tables:
 | 版面抽检 | 已实现：`render`（Word COM + PDF/PNG） |
 | Router（会话、合批、队列、回传修正） | **编排层已实现**：`dsh_word.router` + `apply`（合批/去重/逐批重填/复检/报告）；会话入口仍待接 dsh-super-agent |
 | Web 侧实时预览面板 | **已具备**：本机 profile 已挂 `ui-sidebar-documentpreview` + `office-to-pdf`（LibreOffice Kit，WASM 兜底，无需系统 LibreOffice），右栏可直接看 docx |
-| Zotero 原生引文 / 参考文献字段 | **字段级已验证**：Zotero 10.0.7 + Word 16.0 下可写 `ZOTERO_BIBL` 字段并被官方 DLL 读回（见 [docs/zotero-word-mcp-validation.md](docs/zotero-word-mcp-validation.md)）；尚未接入 DSH MCP，refresh 未验证 |
+| Zotero 原生引文 / 参考文献字段 | **字段级已验证**：Zotero 10.0.7 + Word 16.0 下可写 `ZOTERO_BIBL` 字段并被官方 DLL 读回；尚未接入 DSH MCP，refresh 未验证 |
 | 公式字母与正文变量一致性 | **未做**，可作为新规则的 `math_variables` 类型 |
 
 Router 只需要把每次修正翻译成"哪个 slot + 什么值"，调用 `fill` / `check`，再把
 findings 当作结构化结果回传；Worker 之间仍然互不调用。
-
-## 本机 profile 变更记录（2026-11-11）
-
-- **dsh-filens 0.1.9 已安装**到 `desktop` profile：右栏文档预览多一个 `dsh-filens`
-  渲染器，`filens_*` 工具可用（已用它读过 `out.docx`，文本、表格、图片清单都对）。
-- **`@local/dsh-word-pipeline` 已安装**：右栏「Word 流水线」面板 + 左侧「应用」里的
-  Agent 管理器；端点 `/word-pipeline/{state,progress,preview,upload,op,agent/instruct}`，
-  页面加载时注入随机 token；详见 [docs/agent-manager.md](docs/agent-manager.md)。
-- **就地补丁**：0.1.9 按 bash 语义拼命令（`'exe' 'arg'`），在本机 PowerShell 执行器下
-  会报解析错误。已在 `node_modules/dsh-filens/lib/tools.js` 的 `quotedCommand` 前加
-  Windows 分支的 `& ` 前缀。**升级该包会覆盖补丁**，需重打或等上游修复。
-- **dsh-super-agent 0.0.5 安装失败，已回退**：其 peer 依赖把 `@deepseek-ai/cordis@4.0.x`
-  与旧版 dsh 包提升到 profile 顶层，覆盖应用内置的 0.2.2-rc.1，导致 DSH 无法启动；
-  卸载该 bundle 并清理被提升的核心包后恢复。当前 profile 只保留 dsh-filens。
-  profile 目录里的 `cordis.patch.yml.bak-*` 是这次安装/回退留下的备份。
-- 结论：super-agent 在当前 0.2.2-rc.1 上不宜直接装进常驻 profile；要试就放独立
-  profile，坏了不影响主环境。
-- **隔离试验（同日）已做**：用 `dsh --from-default-profile web` 生成 `superagent`
-  profile 再装 0.0.5，启动时 `typert-loader` 注册失败、`session` 行被版本检查禁用，
-  boot 中止；失败被限制在该 profile 内，desktop 全程正常。试验后已删除该 profile。
-  细节见 [docs/super-agent-compat.md](docs/super-agent-compat.md)。
 
 ## 已知边界
 
@@ -228,21 +207,26 @@ findings 当作结构化结果回传；Worker 之间仍然互不调用。
   表格单元格与页眉页脚不在此列。
 - 粘词检测依赖文档自身语料，短文档里召回会下降；allowlist 需要按领域补。
 - 没有 Zotero、批注、修订痕迹的读写；`w:instrText` 域默认原样保留。Zotero 字段的
-  写入/刷新在 `docs/zotero-word-mcp-validation.md` 里单独验证，未接入本流程。
+  写入/刷新曾单独验证过，未接入本流程。
 - 渲染抽检依赖 Windows + Word COM；CI 上需要退回 LibreOffice。
 
 ## 目录
 
 ```
 dsh_word/
-  fill.py      plan 解析、原子操作、step/trace
-  router.py    合批、plan 补丁、逐批重填与复检
-  slots.py     跨 run 槽位替换（文本/图片/公式）
-  omml.py      OMML 提取、文本、结构审计
-  ooxml.py     文档序遍历、格式签名
-  checks.py    规则引擎与各 kind 实现
-  render.py    Word COM → PDF → PNG
-  cli.py       fill / check / inspect / render / rules
-fixtures/      可复现的模板、资料、坏样例与生成脚本
-tests/         16 个端到端与门禁测试
+  retypeset.py            整篇换版式（按样式名取原型，保留公式/图/表/run 级格式）
+  profiles/*.json         样式对应表（换模板只改这里）
+  fill.py                 plan 解析、原子操作、step/trace
+  router.py               合批、plan 补丁、逐批重填与复检
+  slots.py                跨 run 槽位替换（文本/图片/公式）
+  omml.py                 OMML 提取、文本、结构审计
+  ooxml.py                文档序遍历、格式签名
+  checks.py               规则引擎与各 kind 实现
+  render.py               Word COM → PDF → PNG
+  cli.py                  retypeset / fill / check / render / rules
+plugin/                   DSH 插件（右栏面板 + plugin/skills 下的两个技能）
+scripts/                  install.ps1 / install.sh 一键安装
+fixtures/                 可复现的模板、资料、坏样例与生成脚本
+tests/                    端到端与门禁测试
+docs/                     技能文档、架构总览、面板说明
 ```
