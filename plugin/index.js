@@ -17,6 +17,8 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { skillProvider } from './lib/skill-provider.js';
+
 export const name = 'word-pipeline';
 export const inject = ['webServer'];
 
@@ -2042,8 +2044,32 @@ async function handle(ctx, req, res) {
   return json(res, 404, { ok: false, error: '未知接口' });
 }
 
-export function apply(ctx) {
+/**
+ * 把 plugin/skills 下的技能注册进 DSH 技能目录。
+ *
+ * DSH 不会自动扫描插件包的 skills 目录，必须通过 skills 缝注册 provider；
+ * 宿主没有该缝（老版本）时静默降级，插件其余功能不受影响。
+ */
+function registerSkillProvider(ctx, enabled = true) {
+  if (!enabled) return;
+  if (typeof ctx?.inject !== 'function') return;
+  try {
+    ctx.inject(['skills'], (skillCtx) => {
+      try {
+        skillCtx.skills.registerProvider(() => skillProvider);
+        ctx.logger?.info?.('[word-pipeline] 已注册技能：docx-retypeset、word-pipeline');
+      } catch (error) {
+        ctx.logger?.warn?.(`[word-pipeline] 技能注册失败：${error?.message ?? error}`);
+      }
+    });
+  } catch (error) {
+    ctx.logger?.debug?.(`[word-pipeline] skills 缝不可用，跳过技能注册：${error?.message ?? error}`);
+  }
+}
+
+export function apply(ctx, config = {}) {
   hostContext = ctx;
+  registerSkillProvider(ctx, config?.skill !== false);
   // Debug aid: persist the advertised (authenticated) GUI URL so local tooling
   // such as the UI debugger can open the running page.
   try {

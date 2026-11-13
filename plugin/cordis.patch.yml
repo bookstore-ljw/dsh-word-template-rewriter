@@ -1,3 +1,9 @@
+# Word 流水线插件：右栏面板 + 两个技能（docx-retypeset / word-pipeline）
+#
+# `skill: true`（默认）表示把 plugin/skills 下的 SKILL.md 注册进 DSH 技能目录；
+# 设为 false 只装面板，不暴露技能。
 - insert:
     - id: word-pipeline
       name: '@local/dsh-word-pipeline'
+      config:
+        skill: true
